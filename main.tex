@@ -24,6 +24,9 @@
     pdfpagemode=FullScreen,
     }
 
+\definecolor{htmlWhite}{HTML}{ffffff}
+\definecolor{html gray}{HTML}{ffffff}
+
 \usepackage{tikz}
 \tikzset{%
         baseline,
@@ -87,17 +90,118 @@ William \textsc{Karpinski}\\
 
 \section{Introduction}
 
-In this homework, we were asked to search and fix 4 different exploits seen in the Google Gruyere website. During this report, we will explain the different exploits, and propose a fix for each of them.
+In this homework, we were asked to exploit 4 different binaries to extract flags. 
+Those binaries should be exploited using different mechanisms seen in class.
 
-\section{Boris Vian}
-azd \code{test}
-\section{John Nash}
-
-\subsection{Digging the Lore}\label{sub:digging_the_lore} % (fold)
-Boris Vian was a real writer  
+In Section \ref{Boris}, a Race-Condition attack is used to extract the flag.
+The John Nash binary (Sec. \ref{John}) a free-after-use exploit is used to manipulate structs.
 
 
-% subsection Digging the Lore (end)
+Throughout this report, we will explain the different exploits and provide a script to exploit each binary.
+
+\section{Boris Vian}\label{Boris}
+The binary expects a specific argument, as no argument or an incorrect one leads to  
+\code{"Nope, I do not accept this..."} as output.
+
+Using gdb to figure out the argument to be given reveals that the given argument is compared with an obfuscated string.
+It is obfuscated by placing bytes in the stack in a chaotic order (seen in Figure \ref{fig:obfuscated}) 
+
+Rearranging the bytes in the correct order from -0x60 to -0x48 gives \code{/tmp/Heartsnatcher/novel}.
+This is the parameter to be passed !
+
+\begin{figure}[ht]
+        \begin{minted}[
+            % frame=lines,
+            % framesep=2mm,
+            % baselinestretch=1.2,
+            bgcolor=codebg,
+            fontsize=\footnotesize,
+            % linenos
+            ]{java}
+
+   0x000055cc8fdc024e <+101>:	movb   $0x70,-0x5d(%rbp)
+   0x000055cc8fdc0252 <+105>:	movb   $0x72,-0x58(%rbp)
+   0x000055cc8fdc0256 <+109>:	movb   $0x65,-0x5a(%rbp)
+   0x000055cc8fdc025a <+113>:	movb   $0x2f,-0x60(%rbp)
+   0x000055cc8fdc025e <+117>:	movb   $0x2f,-0x5c(%rbp)
+   0x000055cc8fdc0262 <+121>:	movb   $0x2f,-0x4e(%rbp)
+   0x000055cc8fdc0266 <+125>:	movb   $0x48,-0x5b(%rbp)
+   0x000055cc8fdc026a <+129>:	movb   $0x65,-0x50(%rbp)
+   0x000055cc8fdc026e <+133>:	movb   $0x72,-0x4f(%rbp)
+   0x000055cc8fdc0272 <+137>:	movb   $0x6f,-0x4c(%rbp)
+   0x000055cc8fdc0276 <+141>:	movb   $0x65,-0x4a(%rbp)
+   0x000055cc8fdc027a <+145>:	movb   $0x73,-0x56(%rbp)
+   0x000055cc8fdc027e <+149>:	movb   $0x0,-0x48(%rbp)
+   0x000055cc8fdc0282 <+153>:	movb   $0x74,-0x57(%rbp)
+   0x000055cc8fdc0286 <+157>:	movb   $0x76,-0x4b(%rbp)
+   0x000055cc8fdc028a <+161>:	movb   $0x6e,-0x55(%rbp)
+   0x000055cc8fdc028e <+165>:	movb   $0x6c,-0x49(%rbp)
+   0x000055cc8fdc0292 <+169>:	movb   $0x74,-0x5f(%rbp)
+   0x000055cc8fdc0296 <+173>:	movb   $0x68,-0x51(%rbp)
+   0x000055cc8fdc029a <+177>:	movb   $0x61,-0x54(%rbp)
+   0x000055cc8fdc029e <+181>:	movb   $0x74,-0x53(%rbp)
+   0x000055cc8fdc02a2 <+185>:	movb   $0x63,-0x52(%rbp)
+   0x000055cc8fdc02a6 <+189>:	movb   $0x61,-0x59(%rbp)
+   0x000055cc8fdc02aa <+193>:	movb   $0x6e,-0x4d(%rbp)
+   0x000055cc8fdc02ae <+197>:	movb   $0x6d,-0x5e(%rbp)
+   0x000055cc8fdc02b2 <+201>:	mov    -0x140(%rbp),%rax
+   0x000055cc8fdc02b9 <+208>:	add    $0x8,%rax
+   0x000055cc8fdc02bd <+212>:	mov    (%rax),%rax
+   0x000055cc8fdc02c0 <+215>:	lea    -0x60(%rbp),%rdx
+   0x000055cc8fdc02c4 <+219>:	mov    %rdx,%rsi
+   0x000055cc8fdc02c7 <+222>:	mov    %rax,%rdi
+   0x000055cc8fdc02ca <+225>:	call   0x55cc8fdc0090 <strcmp@plt>
+   0x000055cc8fdc02cf <+230>:	test   %eax,%eax
+        \end{minted}
+    \caption{gdb disassembly of the comparison with the obfuscated string}\label{fig:obfuscated}
+\end{figure}
+
+By putting the right argument, the program loops 60 times and prints \code{The world is against me, please adapt it...}\\ every 0.5 seconds (nanosleep of 0x1dcd6500 == 500,000,000 ns) before printing \code{I need a rest}.
+
+
+This led me to reason about the permissions of the /tmp folder, but that wasn't the issue.
+In fact, it was simply that the \code{Heartsnatcher} directory in \code{/tmp} didn't exist and was causing the issue.
+As, the binary couldn't write the \code{novel} file in a non-existing directory.
+Once the \code{/tmp/Heartsnatcher} directory created, the output of the binary was \code{20} indicating it wrote 20 bytes (the flag).
+
+By looking at the assembly, we can figure out that there is a gap of 0.5s between the creation of the file and a \code{chmod} call to change its permissions.
+This gap could be exploited by using a Race-condition attack.
+To this end, the \code{Boris\_RaceCondition.c} code is used to read in a loop the \code{/tmp/Heartsnatcher/novel} file before it changes permissions. 
+
+Running this script in a separate terminal then executing the binary with the \code{/tmp/Heartsnatcher/novel} argument gives the result illustrated in Figure \ref{fig:borisFlag}.
+
+This provides the flag : \code{sinfo044\{Armstrong\}} which is explained in Section \ref{BorisLore}. 
+
+\begin{figure}[ht]
+        \begin{minted}[
+            % frame=lines,
+            % framesep=2mm,
+            % baselinestretch=1.2,
+            bgcolor=codebg,
+			formatcom=\color{htmlWhite},
+            fontsize=\footnotesize,
+            % linenos
+            ]{md}
+
+	Waiting for file creation...
+	File caught! Waiting for binary to write flag...
+	Flag retrieved: sinfo044{Armstrong}
+
+        \end{minted}
+    \caption{gdb disassembly of the comparison with the obfuscated string}\label{fig:borisFlag}
+\end{figure}
+
+\subsection{Digging the Lore}\label{BorisLore}
+Boris was a real writer passionate about jazz, the \code{Heartsnatcher} path is correlated with a real roman he wrote. He was a member of the Hot Club de France, an organization dedicated to fans of jazz.
+The link to Armstrong (the flag) is then clear as the Hot Club de France elected him as honorary President in 1936, and he would open festivals organised by the club.      
+
+\section{John Nash}\label{John}
+
+\subsection{Digging the Lore}
+Nobel Prize-winning mathematician John Nash, died on May 23, 2015, in a taxi crash on the New Jersey Turnpike in Monroe Township.
+He was returning from Newark Airport after a trip to Norway, where Nash received the prestigious 2015 Abel Prize. 
+The link between the flag (\code{MonroeTownship}) and John Nash is a sad  reference to his (comical) death.
+
 
 \section{Arthur Scherbius}
 
