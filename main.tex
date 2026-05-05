@@ -10,7 +10,7 @@
 \usemintedstyle{fruity}
 \usepackage{hyperref}
 \usepackage{biblatex} %Imports biblatex package
-
+\usepackage{booktabs} % toprules and bottomrules in tables
 \usepackage{caption}
 \usepackage{subcaption}
 
@@ -172,7 +172,7 @@ Running this script in a separate terminal then executing the binary with the \c
 
 This provides the flag : \code{sinfo044\{Armstrong\}} which is explained in Section \ref{BorisLore}. 
 
-\begin{figure}[ht]
+\begin{figure}[H]
         \begin{minted}[
             % frame=lines,
             % framesep=2mm,
@@ -188,14 +188,101 @@ This provides the flag : \code{sinfo044\{Armstrong\}} which is explained in Sect
 	Flag retrieved: sinfo044{Armstrong}
 
         \end{minted}
-    \caption{gdb disassembly of the comparison with the obfuscated string}\label{fig:borisFlag}
+	\caption{Result of the \protect\code{Boris\_RaceCondition.c} code execution}\label{fig:borisFlag}
 \end{figure}
 
 \subsection{Digging the Lore}\label{BorisLore}
 Boris was a real writer passionate about jazz, the \code{Heartsnatcher} path is correlated with a real roman he wrote. He was a member of the Hot Club de France, an organization dedicated to fans of jazz.
 The link to Armstrong (the flag) is then clear as the Hot Club de France elected him as honorary President in 1936, and he would open festivals organised by the club.      
 
+
 \section{John Nash}\label{John}
+At first glance, the structs and free functions give a glimpse of a possible free after use attack to exploit the binary. 
+Looking at it in details, we find that both structs are of the same size, as in their respective creation functions, 2 bytes are allocated for them.
+This and the fact that the free function doesn't clear the struct data but only frees the pointer indicates that by creating an addition, freeing it and creating a division might result in some values from the addition to be passed to the division (those which aren't overwritten by the division). 
+
+To better grasp the allocation of both structs, Table \ref{tab:john} compares them byte by byte.
+
+\begin{table}
+	\caption{Byte by Byte comparison of addsub and div structs.}\label{tab:john}
+	\begin{center}
+		\begin{tabular}[c]{|c|c|c|}
+			\hline
+			\textbf{Byte span} & \textbf{addsub} & \textbf{div}\\
+			\toprule
+			$0x0 \rightarrow 0x8$ & a & num \\
+			\hline
+			$0x8 \rightarrow 0x10$ & b & denum \\
+			\hline
+			$0x10 \rightarrow 0x18$ & res & \begin{tabular}[c]{c} ($0x10 \rightarrow 0x17$) options\\ ($0x17 \rightarrow 0x18$) status\end{tabular}\\
+			\hline
+			$0x18 \rightarrow 0x20$ &
+			\begin{tabular}[c]{c} ($0x18 \rightarrow 0x19$) status\\
+								  ($0x19 \rightarrow 0x1a$) is\_sub\\
+								  ($0x1a \rightarrow 0x20$) status
+							  \end{tabular} & res\\
+			\bottomrule
+		\end{tabular}
+	\end{center}
+\end{table}
+
+This is valuable insights but how to break the equilibrium stays a mystery.
+Using gdb to look at the \code{break\_equilibrium} function reveals that the res should be negative with  \code{34}(in decimal) as status.   
+This is true for both structs meaning the addsub (resp. div) struct the represented signed integer at 0x10 offset (resp. 0x18) should be negative with the 0x18 offset (resp. 0x17) equal to 34. 
+
+Now that we have a better understanding of the allocation and the win condition, we'll look at how we could arrive in a winning status. 
+Exploring the fact that the status of an addsub corresponds to the first byte of the \code{res} of a div, we can leverage it to put a \code{status} 34 in an addsub.
+Moreover, the last byte of the addsub \code{res} corresponds to the div \code{status}. 
+
+By looking at the \code{create} functions of any struct, we observe that it only overwrites the  $0x0 \rightarrow 0x10$ bytes.
+In addition, the \code{evaluation} also have a simmilar logic for both structs : if the result is negative, the \code{res} isn't overwritten and \code{-70} is set as status. 
+If the result is positive, the status is set to 34 and the \code{res} is overwritten. 
+The div \code{options} and addsub \code{is\_sub} aren't relevant for our exploit.
+
+Finaly, knowing what the allocation is and the logic of the different function for each struct we can leverage this information to attack the binary using a free-ater-use attack. 
+The free-after-use is usable as, due to their similar size, the allocator will simply allocate the same space after a free for div and addsub structs.   
+This means that, by setting values for a struct (creating and evaluating it), freeing it and recreating a new struct on top of it, we are able to keep the values not overwritten from the previous struct. 
+
+Conviently, the status for negative number is a negative number itself, and is the most significant byte of the addsub \code{res}.
+Moreover, a div \code{res} of 34 would result in an addsub \code{status} of 34. 
+
+Using those two observations, we create a serie of instruction to break the equilibrium : 
+\begin{enumerate}
+	\item create a division that would result in 34 and evaluate it 
+	\item free it
+	\item create another division that would result in a negative number and evaluate it
+	\item free it
+	\item create an addition with arbitrary values 
+	\item break the equilibrium
+\end{enumerate}
+
+(1) sets the addsub \code{status} to 34.
+(3) sets the addsub \code{res} to a negative value. 
+(5) switches the div struct to an addsub one.
+(6) results in an equilibrium break as the win condition is satisfied.
+
+This sequence breaks the equilibrium and reveals the flag of the binary (\code{sinfo044\{MonroeTownship\}}) as seen in Figure \ref{fig:flagjohn}.
+
+The \code{john\_free\_exploit.sh} script can be used to directly reproduce the sequence and retrieve the flag. 
+
+\begin{figure}[H]
+        \begin{minted}[
+            % frame=lines,
+            % framesep=2mm,
+            % baselinestretch=1.2,
+            bgcolor=codebg,
+			formatcom=\color{htmlWhite},
+            fontsize=\footnotesize,
+            % linenos
+            ]{md}
+
+	Oh no, my seatbelt!
+	The flag is sinfo044{MonroeTownship}
+
+        \end{minted}
+		\caption{Result of the sequence breaking the equilibrium}\label{fig:flagjohn}
+\end{figure}
+
 
 \subsection{Digging the Lore}
 Nobel Prize-winning mathematician John Nash, died on May 23, 2015, in a taxi crash on the New Jersey Turnpike in Monroe Township.
