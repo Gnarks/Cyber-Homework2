@@ -1,0 +1,112 @@
+\documentclass[a4paper, 12pt]{article}
+\usepackage[pdftex]{graphicx}
+\usepackage[T1]{fontenc}
+\usepackage{wrapfig}
+\usepackage{graphicx} 
+\usepackage{algpseudocode}
+\usepackage{algorithm}
+\usepackage{minted}
+\usepackage{tcolorbox}
+\usemintedstyle{fruity}
+\usepackage{hyperref}
+\usepackage{biblatex} %Imports biblatex package
+
+\usepackage{caption}
+\usepackage{subcaption}
+
+\definecolor{codebg}{HTML}{222222}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=magenta,      
+    urlcolor=blue,
+    pdftitle={Overleaf Example},
+    pdfpagemode=FullScreen,
+    }
+
+\usepackage{tikz}
+\tikzset{%
+        baseline,
+        inner sep=2pt,
+        minimum height=12pt,
+        rounded corners=2pt  
+    }
+\newcommand{\code}[1]{\mbox{% added this percent
+        \ttfamily
+        \tikz \node[anchor=base,fill=black!12]{#1};% added this percent
+}}
+
+\begin{document}
+\begin{titlepage}
+\begin{center}
+{\Large University of Mons}\\[1ex]
+{\Large Faculty of Sciences}\\[1ex]
+{\Large Computer Science department}\\[2.5cm]
+\newcommand{\HRule}{\rule{\linewidth}{0.3mm}}
+% Title
+\HRule \\[0.3cm]
+{ \LARGE \bfseries Cybersecurity : Binary Exploitation Homework report \\[0.1cm]} 
+\HRule \\[1.5cm]
+
+% Author and supervisor
+\begin{minipage}[t]{0.45\textwidth}
+\begin{flushleft} \large
+\emph{Teacher :}\\
+Quentin \textsc{De Coninck}\\
+
+\emph{Group 7}\\
+\end{flushleft}
+\end{minipage}
+\begin{minipage}[t]{0.45\textwidth}
+\begin{flushright} \large
+\emph{Authors :} \\
+Maxime \textsc{Bartha}\\
+William \textsc{Karpinski}\\
+\end{flushright}
+\end{minipage}\\[2ex]
+
+\vfill
+
+% Bottom of the page
+\begin{center}
+\begin{tabular}[t]{c c c}
+\includegraphics[height=1.5cm]{images/logoumons.jpg} &
+\hspace{0.3cm} &
+\includegraphics[height=1.5cm]{images/logofs.jpg}
+\end{tabular}
+\end{center}~\\
+ 
+{\large Academic Year 2025-2026}
+
+\end{center}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+
+\section{Introduction}
+
+In this homework, we were asked to search and fix 4 different exploits seen in the Google Gruyere website. During this report, we will explain the different exploits, and propose a fix for each of them.
+
+\section{Boris Vian}
+azd \code{test}
+\section{John Nash}
+
+\subsection{Digging the Lore}\label{sub:digging_the_lore} % (fold)
+Boris Vian was a real writer  
+
+
+% subsection Digging the Lore (end)
+
+\section{Arthur Scherbius}
+
+\section{Kame Sennin}
+
+\section{Conclusion}
+
+In summary, this homework permitted us to dive into web vulnerabilities cyber defense.
+We learned to identify and leverage web vulnerabilities as well as patching them. 
+Even though we didn't fix every vulnerability listed on Google's website, some of the implemented fixes make them harder or infeasible to exploit.
+\newpage
+\end{document}
