@@ -109,7 +109,7 @@ It is obfuscated by placing bytes in the stack in a chaotic order (seen in Figur
 Rearranging the bytes in the correct order from -0x60 to -0x48 gives \code{/tmp/Heartsnatcher/novel}.
 This is the parameter to be passed !
 
-\begin{figure}[ht]
+\begin{figure}[H]
         \begin{minted}[
             % frame=lines,
             % framesep=2mm,
@@ -292,7 +292,117 @@ The link between the flag (\code{MonroeTownship}) and John Nash is a sad  refere
 
 \section{Arthur Scherbius}
 
+
+The binary here, welcomes us and expects 2 inputs, a username and a password.
+The welcome message is \code{Welcome to Enigma v20.2.6 SuperDoudou} \code{Edition!}
+followed by a message asking us to enter the username or password. By using,
+\code{strings} to see the readable strings of the file, we can see that there
+is indeed the input asking strings, asking us to enter a value, but no signs of the
+welcome message. Using gdb, we can find some instruction decrypting a value,
+\code{<rapterrg>}, before printing it and then print the input asking strings.
+We can conclude that rapterrg correspond to an encrypted version of the welcome
+message, by finding the value of rapterrg we know have a plain text and its
+cypher text. By using gdb, we can also see that the code use AES-GCM as its
+encryption algorithm, and so use a XOR between a key and a plaintext to get the
+cypher one. This logic can be used in another way, by XORing the cypher text
+and the plaintext we can get back the key used for the encryption.
+
+By doing this technic, we can get the key used for the encryption of the
+Welcome message, and if this key is used anywhere to encrypt we can get the
+plaintext easily by XORing the key with it. But using gdb again we can see that
+after passing any input asked, it is encrypted and compared to a value,
+\code{<raphfre>} for the user and \code{<rapcnff>} for the password.
+
+By retrieving these value, we can XOR them with the key found earlier and if
+the key has been reused we should get the plaintext of the wanted input. 
+
+Here the key is reused both for the username and the password, and so we get: 
+
+
+\begin{itemize}
+  \item the username : \code{WhatAW0nderfulTeacher}
+  \item the password : \code{Th1sIsAV3ryComPleXPasswordToGuess}
+\end{itemize}
+
+By putting these informations as inputs we get the flag : \code{sinfo044\{AlanTuring\}}
+
+\begin{figure}[H]
+        \begin{minted}[
+            % frame=lines,
+            % framesep=2mm,
+            % baselinestretch=1.2,
+            bgcolor=codebg,
+			formatcom=\color{htmlWhite},
+            fontsize=\footnotesize,
+            % linenos
+            ]{md}
+
+Welcome to Enigma v20.2.6 SuperDoudou Edition!
+Enter username: Enter password: 
+Heil CyberMaster! Here is your confidential message:
+sinfo044{AlanTuring}
+
+        \end{minted}
+	\caption{Final result given by the \protect\code{arthur-scerbius.py} code execution}\end{figure}
+
+\subsection{Digging the Lore}
+
+Here the flag referred to Alan Turing, the man who "decrypted" Enigma during the World War 2.
+Enigma was a machine, used by Nazis during the war to encrypt their communication without possibility for the Allies to get the information shared. This machine was created by Arthur Scherbius and cracked by Alan Turing using a similar approach used in this exercise, finding known plaintext via cypher text with common words used during Nazis communication.
+
 \section{Kame Sennin}
+
+This binary asks us to find the "best manga" according to a specific user, which is an address.
+In this exercice two flags had to be found.
+
+\subsection{Fairy Tail Buffer Overflow}
+
+Using objdump and gdb, we can detect functions in the code, \code{main},
+\hbox{1em}
+\code{onePieceIsForTheWeak} and \code{dragonBallForever}. Here only,
+\code{main} and \code{onePieceIsForTheWeak} are callable, but no flags are to be
+found here. Analyzing \code{dragonBallForever}, we can see that it
+creates a value in the stack, to be able to see it, we need to call this function.
+
+As the stack is executable, a buffer overflow is possible. To do so, we need  to find the
+address of the function we want to call, the difficulty here was to find the good address 
+of \code{dragonBallForever}. Fortunately, the message printed by the binary gives us an
+address which is the \code{onePieceIsForTheWeak} one. 
+
+As the difference between their address is constant we can easily find 
+the address of the wanted function. But if we practice the overflow with 
+"random"  chosen characters, we get this message \code{Good try one-punch man},
+so we need to find another way to do so. By analyzing \code{dragonBallForever}, we see
+ that two values are checked, \code{megaman} and \code{deathnote}, which are modified in \code{onePieceIsForTheWeak} if \code{FairyTail} is written as input. By filling the first value of our buffer overflow string with \code{FairyTail} instead of random values, we finally get the first wanted flag.
+The flag given is \code{sinfo044\{TheRealAnswerIsSailorMoon\}}.
+
+\begin{figure}[H]
+        \begin{minted}[
+            % frame=lines,
+            % framesep=2mm,
+            % baselinestretch=1.2,
+            bgcolor=codebg,
+			formatcom=\color{htmlWhite},
+            fontsize=\footnotesize,
+            % linenos
+            ]{md}
+
+Really?!? No Joke! This does not worth a single yen!
+Congratulations; you finally understood me!
+
+Go find your flag here: sinfo044\{TheRealAnswerIsSailorMoon\}\x00
+
+        \end{minted}
+    \caption{Final result given by the \protect\code{kime-sennin-1.py} code execution}
+\end{figure}
+
+\subsection{Shellcode}
+
+For this part, we found the flag as
+\code{sinfo044\{ReadyForTheAdvancedCyber} \code{Defense\&ForensicsCourse\}}, but
+couldn't manage to extract it properly. Our solution was to create a shellcode
+that would show the content of the flag by making the binary call it with a chosen input.
+
 
 \section{Conclusion}
 
